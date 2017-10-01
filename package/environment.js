@@ -54,14 +54,11 @@ const getEntryObject = () => {
 
 const makeArray = obj => (Array.isArray(obj) ? obj : [obj])
 
+const addToArray = (obj, array, strategy) =>
+  (strategy === 'prepend' ? array.concat(obj) : [obj].concat(array))
+
 module.exports = class Environment {
   constructor() {
-    this.mergeOptions = {
-      entry: 'append',
-      'module.rules': 'append',
-      plugins: 'append'
-    }
-
     this.config = {
       entry: getEntryObject(),
 
@@ -93,46 +90,62 @@ module.exports = class Environment {
     }
   }
 
-  addEntry(entry) {
-    this.mergeConfig({
-      entry: makeArray(entry)
-    })
+  addEntry(entry, strategy = { entry: 'append' }) {
+    this.mergeConfig({ entry }, strategy)
   }
 
-  addRule(rule) {
+  addRule(rule, strategy = { 'module.rules': 'prepend' }) {
     this.mergeConfig({
       module: {
         rules: makeArray(rule)
       }
-    })
+    }, strategy)
   }
 
-  addPlugin(plugin) {
-    this.mergeConfig({
-      plugins: makeArray(plugin)
-    })
+  addPlugin(plugin, strategy = { plugins: 'append' }) {
+    this.mergeConfig({ plugins: makeArray(plugin) }, strategy)
   }
 
-  addResolvedModule(module) {
+  addResolvedModule(module, strategy = { 'resolve.modules': 'prepend' }) {
     this.mergeConfig({
       resolve: {
         modules: makeArray(module)
       }
-    })
+    }, strategy)
   }
 
-  addLoader(ruleName, loader) {
-    makeArray(ruleName).forEach(rule => this.updateRule(rule, { use: makeArray(loader) }))
+  addLoader(ruleName, loader, strategy = { use: 'prepend' }) {
+    makeArray(ruleName).forEach(name =>
+      this.updateRule(name, { use: makeArray(loader) }, strategy)
+    )
   }
 
-  updateRule(name, options = {}) {
+  findRule(name) {
     const rule = rules[name]
     if (!rule) throw new Error(`Rule ${name} not found in ${JSON.stringify(rules, null, 2)}`)
-    this.addRule(merge.smart(rule, options))
+    return this.config.module.rules.find(r => String(r.test) === String(rule.test))
   }
 
-  mergeConfig(config) {
-    this.config = merge.smartStrategy(this.mergeOptions)(this.config, config)
+  updateRule(name, options, strategy = { test: 'replace', exclude: 'replace' }) {
+    const rule = this.findRule(name)
+    const newRule = merge.strategy(strategy)(rule, options)
+    this.addRule(newRule)
+  }
+
+  updateEntry(entryName = [], newEntry, strategy = 'prepend') {
+    const entryNames = makeArray(entryName)
+    const newEntries = makeArray(newEntry)
+
+    const onlyEntries = ([key]) =>
+      entryNames.length === 0 || (entryNames.length >= 0 && entryNames.indexOf(key) >= 0)
+
+    Object.entries(this.config.entry).filter(onlyEntries).forEach(([key, entry]) =>
+      (this.config.entry[key] = addToArray(entry, newEntries, strategy))
+    )
+  }
+
+  mergeConfig(config, strategy = { entry: 'append', plugins: 'append', 'module.rules': 'prepend' }) {
+    this.config = merge.smartStrategy(strategy)(this.config, config)
     return this.config
   }
 }
