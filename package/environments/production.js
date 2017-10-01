@@ -26,7 +26,9 @@ module.exports = class extends Environment {
       })
     ])
 
-    this.config.devtool = 'nosources-source-map'
-    this.config.stats = 'normal'
+    this.mergeConfig({
+      devtool: 'nosources-source-map',
+      stats: 'normal'
+    })
   }
 }
