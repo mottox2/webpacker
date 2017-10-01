@@ -90,33 +90,33 @@ module.exports = class Environment {
     }
   }
 
-  addEntry(entry, strategy = { entry: 'append' }) {
-    this.mergeConfig({ entry }, strategy)
+  addEntry(entry, strategy = 'append') {
+    this.mergeConfig({ entry }, { entry: strategy })
   }
 
-  addRule(rule, strategy = { 'module.rules': 'prepend' }) {
+  addRule(rule, strategy = 'prepend') {
     this.mergeConfig({
       module: {
         rules: makeArray(rule)
       }
-    }, strategy)
+    }, { 'module.rules': strategy })
   }
 
-  addPlugin(plugin, strategy = { plugins: 'append' }) {
-    this.mergeConfig({ plugins: makeArray(plugin) }, strategy)
+  addPlugin(plugin, strategy = 'append') {
+    this.mergeConfig({ plugins: makeArray(plugin) }, { plugins: strategy })
   }
 
-  addResolvedModule(module, strategy = { 'resolve.modules': 'prepend' }) {
+  addResolvedModule(module, strategy = 'prepend') {
     this.mergeConfig({
       resolve: {
         modules: makeArray(module)
       }
-    }, strategy)
+    }, { 'resolve.modules': strategy })
   }
 
-  addLoader(ruleName, loader, strategy = { use: 'prepend' }) {
+  addLoader(ruleName, loader, strategy = 'prepend') {
     makeArray(ruleName).forEach(name =>
-      this.updateRule(name, { use: makeArray(loader) }, strategy)
+      this.updateRule(name, { use: makeArray(loader) }, { use: strategy })
     )
   }
 
